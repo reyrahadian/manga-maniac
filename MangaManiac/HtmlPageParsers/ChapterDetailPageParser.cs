@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using MangaManiac.Console.Models;
+using System.Reflection.Metadata.Ecma335;
 
 namespace MangaManiac.Console.HtmlPageParsers
 {
@@ -22,12 +23,14 @@ namespace MangaManiac.Console.HtmlPageParsers
                 {
                     var chapterImage = new ChapterImage();
 
-                    var cfImageSrcAttribute = imageNode.GetDataAttribute("cfsrc");
-                    var imageSrc = imageNode.GetAttributeValue("src", cfImageSrcAttribute?.Value);
+                    var imageSrc = imageNode.GetAttributeValue("src", String.Empty);
+                    if (string.IsNullOrEmpty(imageSrc)) 
+                    {
+                        continue;
+                    }                    
+
                     chapterImage.ImageUri = new Uri(imageSrc);
-
                     chapterImage.Order = order;
-
                     chapterImages.Add(chapterImage);
 
                     order++;

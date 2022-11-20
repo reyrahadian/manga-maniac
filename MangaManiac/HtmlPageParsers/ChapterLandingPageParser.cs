@@ -6,13 +6,17 @@ namespace MangaManiac.Console.HtmlPageParsers
 {
     internal class ChapterLandingPageParser
     {
-        public async Task<IEnumerable<Chapter>> GetChaptersAsync(Uri chapterlandingPageUrl)
+        public async Task<Manga> GetMangaInfoAsync(Uri chapterlandingPageUrl)
         {
             using (var httpClient = new HttpClient())
             {
                 var response = await httpClient.GetStringAsync(chapterlandingPageUrl);
                 var htmlDoc = new HtmlDocument();
                 htmlDoc.LoadHtml(response);
+
+                var manga = new Manga();
+                var titleNode = htmlDoc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']");
+                manga.Title = titleNode.InnerHtml;
 
                 var chapterNodes = htmlDoc.DocumentNode.SelectNodes("//div[@id='chapterlist']/ul/*");
                 var chapters = new List<Chapter>();
@@ -56,7 +60,9 @@ namespace MangaManiac.Console.HtmlPageParsers
                     chapters.Add(chapter);
                 }
 
-                return chapters.OrderByDescending(c => c.Number);
+                manga.Chapters = chapters.OrderByDescending(c => c.Number);
+
+                return manga;
             }
         }
     }
