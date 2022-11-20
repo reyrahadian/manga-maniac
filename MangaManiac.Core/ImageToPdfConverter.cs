@@ -13,12 +13,15 @@ namespace MangaManiac.Core
 
             using (var bitmap = new Bitmap(imageFilePath)) 
             {
-                var pdfDoc = new PdfDocument(new PdfWriter(File.Create(pdfFilePath)));
-                var doc = new Document(pdfDoc, new iText.Kernel.Geom.PageSize(bitmap.Width, bitmap.Height));
-                var img = new Image(ImageDataFactory.Create(imageFilePath));
-                doc.Add(img);
+                using (var pdfFile = File.Create(pdfFilePath)) 
+                {
+                    var pdfDoc = new PdfDocument(new PdfWriter(pdfFile));
+                    var doc = new Document(pdfDoc, new iText.Kernel.Geom.PageSize(bitmap.Width, bitmap.Height));
+                    var img = new Image(ImageDataFactory.Create(imageFilePath));
+                    doc.Add(img);
 
-                doc.Close();
+                    doc.Close();
+                }                
             }            
         }
     }

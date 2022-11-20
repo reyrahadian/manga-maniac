@@ -24,7 +24,6 @@ namespace MangaManiac.Core
             }
 
             var chapterImages = await _mangaChapterDetailPageParser.GetChapterImagesAsync(mangaChapter.Uri);
-
             var filePaths = await new BulkImageDownloader().DownloadAsync(chapterDirPath, chapterImages.Select(img => img.ImageUri));
             foreach (var filePath in filePaths)
             {
