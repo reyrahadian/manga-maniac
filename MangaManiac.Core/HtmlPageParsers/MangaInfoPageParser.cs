@@ -1,16 +1,26 @@
 ﻿using HtmlAgilityPack;
-using MangaManiac.Console.Models;
+using MangaManiac.Core.Models;
+using Serilog;
 using System.Globalization;
 
-namespace MangaManiac.Console.HtmlPageParsers
+namespace MangaManiac.Core.HtmlPageParsers
 {
-    internal class ChapterLandingPageParser
+    public class MangaInfoPageParser
     {
-        public async Task<Manga> GetMangaInfoAsync(Uri chapterlandingPageUrl)
+        private readonly ILogger _logger;
+
+        public MangaInfoPageParser(ILogger logger)
         {
+            _logger = logger;
+        }
+
+        public async Task<Manga> GetMangaInfoAsync(Uri mangaInfoPageUrl)
+        {
+            _logger.Information($"Retrieving manga information from {mangaInfoPageUrl}");
+
             using (var httpClient = new HttpClient())
             {
-                var response = await httpClient.GetStringAsync(chapterlandingPageUrl);
+                var response = await httpClient.GetStringAsync(mangaInfoPageUrl);
                 var htmlDoc = new HtmlDocument();
                 htmlDoc.LoadHtml(response);
 
@@ -19,10 +29,10 @@ namespace MangaManiac.Console.HtmlPageParsers
                 manga.Title = titleNode.InnerHtml;
 
                 var chapterNodes = htmlDoc.DocumentNode.SelectNodes("//div[@id='chapterlist']/ul/*");
-                var chapters = new List<Chapter>();
+                var chapters = new List<MangaChapter>();
                 foreach (var chapterNode in chapterNodes)
                 {
-                    var chapter = new Chapter();
+                    var chapter = new MangaChapter();
                     float chapterNumber;
                     if (float.TryParse(chapterNode.Attributes["data-num"].Value, out chapterNumber))
                     {
@@ -42,7 +52,7 @@ namespace MangaManiac.Console.HtmlPageParsers
                         .FirstOrDefault();
                     if (chapterDateNode != null)
                     {
-                        if (DateTime.TryParseExact(chapterDateNode.InnerHtml, "MMMM dd, yyyy", new CultureInfo("en-us"), System.Globalization.DateTimeStyles.None, out var chapterDate))
+                        if (DateTime.TryParseExact(chapterDateNode.InnerHtml, "MMMM dd, yyyy", new CultureInfo("en-us"), DateTimeStyles.None, out var chapterDate))
                         {
                             chapter.Date = chapterDate;
                         }

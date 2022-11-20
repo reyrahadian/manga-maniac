@@ -1,6 +1,6 @@
-﻿namespace MangaManiac.Console.Models
+﻿namespace MangaManiac.Core.Models
 {
-    internal class Chapter
+    public class MangaChapter
     {
         public float? Number { get; set; }
         public string Title { get; set; }

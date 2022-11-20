@@ -1,50 +1,19 @@
-﻿using MangaManiac.Console.HtmlPageParsers;
+﻿using MangaManiac.Updater.Console;
+using Serilog;
 
-var manga = await new ChapterLandingPageParser().GetMangaInfoAsync(new Uri("https://asura.gg/manga/chronicles-of-the-martial-gods-return/"));
+var logger = new LoggerConfiguration()
+    .WriteTo.Console()
+     .WriteTo.File("log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
 var mangaRootDirPath = @"C:\Users\reyrahadian\Downloads\manga-m";
-
-var mangaDirPath = $"{mangaRootDirPath}\\{manga.Title}";
-if (!Directory.Exists(mangaDirPath))
+var mangaDirectories = Directory.GetDirectories(mangaRootDirPath).Select(d => new DirectoryInfo(d));
+logger.Information($"Scanning manga directories");
+foreach (var directory in mangaDirectories)
 {
-    Directory.CreateDirectory(mangaDirPath);
+    logger.Information($"Found {directory.FullName}");
+    await new MangaUpdater(logger).UpdateAsync(directory.FullName);    
 }
-
-foreach (var chapter in manga.Chapters.Take(1))
-{
-    var chapterDirPath = $"{mangaDirPath}\\{chapter.Title}";
-    if (!Directory.Exists(chapterDirPath))
-    {
-        Directory.CreateDirectory(chapterDirPath);
-    }
-
-    var chapterImages = await new ChapterDetailPageParser().GetChapterImagesAsync(chapter.Uri);
-    var httpClients = new List<HttpClient>();
-    var downloadImageTasks = new List<Task<HttpResponseMessage>>();
-    foreach (var chapterImage in chapterImages)
-    {
-        var httpClient = new HttpClient();
-        downloadImageTasks.Add(httpClient.GetAsync(chapterImage.ImageUri));
-        httpClients.Add(httpClient);
-    }
-    await Task.WhenAll(downloadImageTasks);
-    httpClients.ForEach(h => h.Dispose());
-
-    var saveFileTasks = new List<Task>();
-    var fileStreams = new List<FileStream>();
-    int fileCounter = 1;
-    foreach (var downloadImageTask in downloadImageTasks)
-    {
-        var chapterImage = chapterImages.ElementAt(fileCounter-1);
-        var fileExt = chapterImage.ImageUri.Segments.Last().Substring(chapterImage.ImageUri.Segments.Last().IndexOf("."));
-        var filePath = $"{chapterDirPath}\\{fileCounter}{fileExt}";
-        var stream = new FileStream(filePath, FileMode.Create);
-        saveFileTasks.Add(downloadImageTask.Result.Content.CopyToAsync(stream));
-        fileStreams.Add(stream);
-
-        fileCounter++;
-    }
-    await Task.WhenAll(saveFileTasks);
-    fileStreams.ForEach(s => s.Dispose());
-}
+logger.Information($"All mangas are up to date");
 
 Console.ReadLine();
