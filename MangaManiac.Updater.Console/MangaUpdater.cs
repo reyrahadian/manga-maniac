@@ -44,6 +44,7 @@ namespace MangaManiac.Updater.Console
 
             // update artifact file
             artifact.LastModified = DateTime.UtcNow;
+            artifact.Chapters = artifact.Chapters.OrderByDescending(c => c.Number).ToList();
             await File.WriteAllTextAsync(artifactFilePath, JsonConvert.SerializeObject(artifact));
         }
 

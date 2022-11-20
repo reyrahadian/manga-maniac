@@ -10,7 +10,8 @@ var logger = new LoggerConfiguration()
     .CreateLogger();
 
 var config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("config.json"));
-var newMangaUrlToAdd = "https://asura.gg/manga/chronicles-of-the-martial-gods-return/";
+Console.WriteLine($"Please enter a URL to the new manga");
+var newMangaUrlToAdd  = Console.ReadLine();
 
 logger.Information($"Adding new manga from {newMangaUrlToAdd}");
 var manga = await new MangaInfoPageParser(logger).GetMangaInfoAsync(new Uri(newMangaUrlToAdd));

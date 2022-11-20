@@ -24,33 +24,15 @@ namespace MangaManiac.Core
             }
 
             var chapterImages = await _mangaChapterDetailPageParser.GetChapterImagesAsync(mangaChapter.Uri);
-            var httpClients = new List<HttpClient>();
-            var downloadImageTasks = new List<Task<HttpResponseMessage>>();
-            foreach (var chapterImage in chapterImages)
-            {
-                var httpClient = new HttpClient();
-                downloadImageTasks.Add(httpClient.GetAsync(chapterImage.ImageUri));
-                httpClients.Add(httpClient);
-            }
-            await Task.WhenAll(downloadImageTasks);
-            httpClients.ForEach(h => h.Dispose());
 
-            var saveFileTasks = new List<Task>();
-            var fileStreams = new List<FileStream>();
-            int fileCounter = 1;
-            foreach (var downloadImageTask in downloadImageTasks)
+            var filePaths = await new BulkImageDownloader().DownloadAsync(chapterDirPath, chapterImages.Select(img => img.ImageUri));
+            foreach (var filePath in filePaths)
             {
-                var chapterImage = chapterImages.ElementAt(fileCounter-1);
-                var originalFileName = chapterImage.ImageUri.Segments.Last();
-                var filePath = $"{chapterDirPath}\\{fileCounter}-{originalFileName}";
-                var stream = new FileStream(filePath, FileMode.Create);
-                saveFileTasks.Add(downloadImageTask.Result.Content.CopyToAsync(stream));
-                fileStreams.Add(stream);
+                var pdfFilePath = $"{filePath}.pdf";
+                new ImageToPdfConverter().Convert(pdfFilePath, filePath);
+                File.Delete(filePath);
+            }            
 
-                fileCounter++;
-            }
-            await Task.WhenAll(saveFileTasks);
-            fileStreams.ForEach(s => s.Dispose());
             _logger.Information($"All chapter images have been downloaded to {chapterDirPath}");
         }
     }
