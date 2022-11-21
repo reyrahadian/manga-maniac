@@ -19,33 +19,41 @@ namespace MangaManiac.Updater.Console
 
         public async Task UpdateAsync(string mangaDirPath)
         {
-            // load artifact file
-            var artifactFilePath = $"{mangaDirPath}\\manga.json";
-            _logger.Information($"Loading artifact definition from {artifactFilePath}");
-            var artifactContent = await File.ReadAllTextAsync(artifactFilePath);
-            var artifact = JsonConvert.DeserializeObject<MangaArtifact>(artifactContent);
-
-            // get chapters from the website
-            var mangaInfo = await _mangaInfoPageParser.GetMangaInfoAsync(artifact.Uri);
-            var newChapterNumbers = mangaInfo.Chapters.Select(c => c.Number.GetValueOrDefault()).Except(artifact.Chapters.Select(ac => ac.Number));
-            var newChapters = mangaInfo.Chapters.Where(c => newChapterNumbers.Contains(c.Number.GetValueOrDefault()));
-
-            _logger.Information($"{newChapters.Count()} new chapters found");
-            await UpdateInBatchAsync(mangaDirPath, newChapters);
-            foreach (var chapter in newChapters)
+            try
             {
-                artifact.Chapters.Add(new MangaArtifact.Chapter 
-                { 
-                    Number = chapter.Number.GetValueOrDefault(), 
-                    Title = chapter.Title, 
-                    Uri = chapter?.Uri 
-                });
-            }
+                // load artifact file
+                var artifactFilePath = $"{mangaDirPath}\\manga.json";
+                _logger.Information($"Loading artifact definition from {artifactFilePath}");
+                var artifactContent = await File.ReadAllTextAsync(artifactFilePath);
+                var artifact = JsonConvert.DeserializeObject<MangaArtifact>(artifactContent);
 
-            // update artifact file
-            artifact.LastModified = DateTime.UtcNow;
-            artifact.Chapters = artifact.Chapters.OrderByDescending(c => c.Number).ToList();
-            await File.WriteAllTextAsync(artifactFilePath, JsonConvert.SerializeObject(artifact));
+                // get chapters from the website
+                var mangaInfo = await _mangaInfoPageParser.GetMangaInfoAsync(artifact.Uri);
+                var newChapterNumbers = mangaInfo.Chapters.Select(c => c.Number.GetValueOrDefault()).Except(artifact.Chapters.Select(ac => ac.Number));
+                var newChapters = mangaInfo.Chapters.Where(c => newChapterNumbers.Contains(c.Number.GetValueOrDefault()));
+
+                _logger.Information($"{newChapters.Count()} new chapters found");
+                await UpdateInBatchAsync(mangaDirPath, newChapters);
+                foreach (var chapter in newChapters)
+                {
+                    artifact.Chapters.Add(new MangaArtifact.Chapter
+                    {
+                        Number = chapter.Number.GetValueOrDefault(),
+                        Title = chapter.Title,
+                        Uri = chapter?.Uri
+                    });
+                }
+
+                // update artifact file
+                artifact.LastModified = DateTime.UtcNow;
+                artifact.Chapters = artifact.Chapters.OrderByDescending(c => c.Number).ToList();
+                await File.WriteAllTextAsync(artifactFilePath, JsonConvert.SerializeObject(artifact));
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Error");
+                throw;
+            }
         }
 
         private async Task UpdateInBatchAsync(string mangaDirPath, IEnumerable<MangaChapter> newChapters, int currentPageIndex = 0)
@@ -59,14 +67,14 @@ namespace MangaManiac.Updater.Console
             {
                 var chapterDirPath = $"{mangaDirPath}\\{chapter.Title}";
                 tasks.Add(new MangaChapterDownloader(_logger).DownloadAsync(chapterDirPath, chapter));
-            }            
+            }
             await Task.WhenAll(tasks);
 
             if (currentPageIndex < totalPages)
             {
                 currentPageIndex++;
                 await UpdateInBatchAsync(mangaDirPath, newChapters, currentPageIndex);
-            }            
+            }
         }
     }
 }

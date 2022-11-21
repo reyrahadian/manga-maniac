@@ -28,7 +28,7 @@ namespace MangaManiac.Core
             foreach (var filePath in filePaths)
             {
                 var pdfFilePath = $"{filePath}.pdf";
-                new ImageToPdfConverter().Convert(pdfFilePath, filePath);
+                new ImageToPdfConverter(_logger).Convert(pdfFilePath, filePath);
                 File.Delete(filePath);
             }            
 
